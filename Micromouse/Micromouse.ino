@@ -125,7 +125,7 @@ void offReset(){
 }
 
 void setMotors(int speedR, int speedL){
-  bool rRev = speedR<0;
+  bool rRev = speedR>0;
   bool lRev = speedL>0;
  
   digitalWrite(directionPinR, rRev);
