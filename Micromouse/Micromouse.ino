@@ -30,11 +30,21 @@ PololuWheelEncoders enc;
 double SetpointR, InputR, OutputR;
 double SetpointL, InputL, OutputL;
 
+double setX, InputX, OutputX;
+double setY, InputY, OutputY;
+
+byte extraR = 0;
+byte extraL = 0;
 // Setup the PID loops with
 PID rightPID(&InputR, &OutputR, &SetpointR, kp, ki, kd, DIRECT);
 PID leftPID(&InputL, &OutputL, &SetpointL, kp, ki, kd, DIRECT);
 
+PID xPID(&InputX, &OutputY, &setX, kp, ki, kd, DIRECT);
+PID yPID(&InputL, &OutputL, &setY, kp, ki, kd, DIRECT);
+
 void setup() {
+  setX = 1;
+  setY = 1;
   // Start up the encoder library
   enc.init(encRA, encRB, encLA, encLB);
   
@@ -43,72 +53,73 @@ void setup() {
   leftPID.SetMode(AUTOMATIC);
   rightPID.SetOutputLimits(-255, 255);
   leftPID.SetOutputLimits(-255, 255);
+
+  rightPID.SetMode(AUTOMATIC);
+  leftPID.SetMode(AUTOMATIC);
+  xPID.SetOutputLimits(5, 13);
+  yPID.SetOutputLimits(5, 13);
   
-  //Serial.begin(9600);
+ Serial.begin(9600);
 
   //reverse(1);
-  
- turn(1);
- delay(500);
- turn(-1);
+  forward(1);
+  delay(2000);
+  reverse(1);
+  delay(2000);
+  forward(1);
 }
 
 void loop() {
 
+
 }
 
 void forward(int cells){
-  move((cells * DIST) + buff, (cells * DIST) + buff);
+  move(DIST*cells, DIST*cells);
 }
 
 void reverse(int cells){
-  move((-1 * cells * DIST) - buff, (-1 * cells * DIST) - buff);
+  move(-1*DIST*cells, -1*DIST*cells);
 }
 
 void turn(int quarters){
-  move((-45*quarters)-buff, (45*quarters)+buff);
+ 
 }
 
 void move(int right, int left) {
+   Serial.print(" Y ");
   SetpointR = right;
   SetpointL = left;
   bool rrev = right < 0;
   bool lrev = left < 0;
+
+
+  float x;
+  float y;
   
-  int deltaR = deltas(SetpointR, InputR);
-  int deltaL = deltas(SetpointL, InputL);
-  Serial.println("starting the forward sequence");
-  while (deltaR > 12) {
-    // get encoder counts and set them into the PID inputs
+  while(deltas(SetpointR, InputR)>10){
     InputR = enc.getCountsM1() / 12;
     InputL = enc.getCountsM2() / 12;
-    deltaR = deltas(SetpointR, InputR);
-    deltaL = deltas(SetpointL, InputL);
     
-//    Serial.print("   Input R: ");
-//    Serial.print(InputR);
-//    Serial.print("   Input L: ");
-//    Serial.println(InputL);
+    x = (float)InputR/(float)InputL;
+    y = InputL/InputR;
     
-    // compute the PID outputs
     rightPID.Compute();
     leftPID.Compute();
-    
-    // use newly computed outputs to set the motor voltages 0-255
-    // we also compensate for the difference between each motor to
-    // keep the robot in a straight line
-    if (deltaR < deltaL) {
-      if (rrev) setMotors(OutputR + 3, OutputL);
-      else setMotors(OutputR - 3, OutputL);
-      
-    }
-    else {
-       if (lrev) setMotors(OutputR, OutputL + 3);
-      else setMotors(OutputR, OutputL - 3);
-    }
+    xPID.Compute();
+    yPID.Compute();
+
+    setMotors(OutputX*OutputR, OutputY*OutputL);
+    Serial.print(" Xo ");
+    Serial.print(OutputX);
+    Serial.print(" Yo ");
+    Serial.println(OutputY);
+    Serial.print(" Xi ");
+    Serial.println(InputR);
+    Serial.print(" Yi ");
+    Serial.println(InputY);
   }
-  // we've gone forward the corrent amount of blocks
-  // now we shutoff motors, reset counts and set both inputs to 0
+ 
   offReset();
 }
 
@@ -117,7 +128,15 @@ int deltas(int a, int b){
 }
 
 void offReset(){
+  
   setMotors(0, 0);
+  delay(500);
+  
+//  Serial.print("Resetting now, current values: M1 ");
+//  Serial.print(enc.getCountsM1()/12);
+//  Serial.print(" M2 ");
+//  Serial.println(enc.getCountsM2()/12);
+//  
   enc.getCountsAndResetM1();
   enc.getCountsAndResetM2();
   InputR = 0;
@@ -133,5 +152,6 @@ void setMotors(int speedR, int speedL){
   delay(5);
   analogWrite(speedPinR, abs(speedR));
   analogWrite(speedPinL, abs(speedL));
+ 
   
 }
