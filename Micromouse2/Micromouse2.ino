@@ -6,16 +6,23 @@
 #include <PID_v1.h>
 #include "PololuWheelEncoders.h"
 
-//Pin definitions
+//Motor Pins
 #define speedPinR 9
 #define directionPinR 8
 #define speedPinL 10
 #define directionPinL 11
+
+// Encoder Pins
 #define encRA 2
 #define encRB 3
 #define encLA 5
 #define encLB 4
-#define DEBUG 1
+
+// Distance Sensor Pins
+#define IRpinR 3
+#define IRpinF 2
+#define IRpinL 1
+
 // Define PID constants
 #define buff 15
 #define DIST 140
@@ -23,6 +30,8 @@
 #define kp 2.5
 #define ki .15
 #define kd .30
+
+#define DEBUG 1
 
 PololuWheelEncoders enc;
 
@@ -48,9 +57,9 @@ void setup() {
 
  //reverse(1);
   
- //forward(1);
+ forward(100);
 
- turn(1);
+ //turn(1);
 }
 
 void loop(){
@@ -129,6 +138,6 @@ void setMotors(int speedR, int speedL){
   digitalWrite(directionPinL, lRev);
   delay(5);
   analogWrite(speedPinR, abs(speedR));
-  analogWrite(speedPinL, abs(speedL));
+  analogWrite(speedPinL, abs(speedL-10));
   
 }
